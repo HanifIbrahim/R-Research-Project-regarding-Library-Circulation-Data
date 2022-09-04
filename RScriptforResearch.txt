@@ -1,0 +1,137 @@
+> setwd("C:/Users/User/OneDrive/UMGC Grad School/Summer 2022/DBST 667/Research Project/Working Directory")
+> dir()
+> Usage<-read.csv(file="LibraryUsage.csv", head=TRUE, sep=",")
+> View(Usage)
+> #checkout and renewals and vs year for linear regression #Might do data attribute distribution
+> #Also gather total patron per year for linear regression
+> #Convert non-year data as factor for mlr_model ornaive bayes
+> #look up R tutorial for decision tree creation
+> udx <- Usage == "?" #Handling missing data
+> is.na(Usage) <- udx
+> Usage<-na.omit(Usage)
+> #-----------------Linear regression is done
+> install.packages("mlbench")
+> library(mlbench)
+> head(Usage)
+> library(ggplot2)
+> UsageA<-Usage
+> ggplot(Usage, mapping = aes(y=total.checkouts,x=year.patron.registered)) + geom_point() + xlab("Year Patron Registered") + ylab("Total Checkouts")
+> #Dependent Variables = Total Renewals, Checkouts
+> p2<-ggplot(Usage, mapping = aes(y=Total.Renewals,x=Year.Patron.Registered)) + geom_point() + xlab("Year Patron Registered") + ylab("Total Checkouts")
+> #mlr fitting
+> UsageA$Patron.Type.Definition<-as.numeric(as.factor(UsageA$Patron.Type.Definition))
+> UsageA$Age.Range<-as.numeric(as.factor(UsageA$Age.Range))
+> UsageA$Home.Library.Code<-as.numeric(as.factor(UsageA$Home.Library.Code))
+> UsageA$Home.Library.Definition<-as.numeric(as.factor(UsageA$Home.Library.Definition))
+> UsageA$Circulation.Active.Month<-as.numeric(as.factor(UsageA$Circulation.Active.Month))
+> UsageA$Circulation.Active.Year<-as.numeric(as.factor(UsageA$Circulation.Active.Year))
+> UsageA$Notice.Preference.Code<-as.numeric(as.factor(UsageA$Notice.Preference.Code))
+> UsageA$Notice.Preference.Definition<-as.numeric(as.factor(UsageA$Notice.Preference.Definition))
+> UsageA$Provided.Email.Address<-as.numeric(as.factor(UsageA$Provided.Email.Address))
+> UsageA$Outside.of.County<-as.numeric(as.factor(UsageA$Outside.of.County))
+> set.seed(12345)
+> # Starting 7/31/2022
+> UsageC=subset(UsageA, select = -c(Total.Renewals))
+> CUse<-sample(1:nrow(UsageC), size = round(nrow(UsageC)*0.70))
+> train.cLUse<-UsageC[CUse,]
+> test.cLUse<-UsageC[-CUse,]
+> myFormulaC<-Total.Checkouts~.
+> mlr_modelC<-lm(myFormulaC, data=train.cLUse)
+> summary(mlr_modelC)
+> UsageR=subset(UsageA, select = -c(Total.Checkouts))
+> RUse<-sample(1:nrow(UsageR), size = round(nrow(UsageR)*0.70))
+> train.rLUse<-UsageR[RUse,]
+> test.rLUse<-UsageR[-RUse,]
+> myFormulaR<-Total.Renewals~.
+> mlr_modelR<-lm(myFormulaR, data=train.aLUse)
+> summary(mlr_modelR)
+> predc <- predict(mlr_modelC, test.cLUse[,-ncol(test.aLUse)])
+> predr <- predict(mlr_modelC, test.rLUse[,-ncol(test.aLUse)])
+> par("mar")
+> par(mar=c(1,1,1,1))
+> cplot<-plot(test.aLUse$Total.Checkouts, predc, xlab = "Observed", ylab = "Predicted") + abline(a=0,b=1)
+> rplot<-plot(test.aLUse$Total.Renewals, predr, xlab = "Observed", ylab = "Predicted") + abline(a=0,b=1)
+> plot(mlr_modelC)
+> plot(mlr_modelR)
+> # looking for p-value less than 0.05 for all variables for Checkouts it is Age.Range
+> # looking for p-value less than 0.05 for all variables for Renewals it is Age.Range
+> mlr_modelC_min<-lm(Total.Checkouts ~ Patron.Type.Code + Patron.Type.Definition + Home.Library.Code + Home.Library.Definition + Circulation.Active.Month + Circulation.Active.Year + Notice.Preference.Code + Notice.Preference.Definition + Provided.Email.Address + Year.Patron.Registered + Outside.of.County + Supervisor.District, data = train.aLUse)
+> mlr_modelR_min<-lm(Total.Renewals ~ Patron.Type.Code + Patron.Type.Definition + Home.Library.Code + Home.Library.Definition + Circulation.Active.Month + Circulation.Active.Year + Notice.Preference.Code + Notice.Preference.Definition + Provided.Email.Address + Year.Patron.Registered + Outside.of.County + Supervisor.District, data = train.aLUse)
+> summary(mlr_modelC_min)
+> summary(mlr_modelR_min)
+> mlr_modelC2<-step(mlr_modelC_min, direction = "backward")
+> mlr_modelR2<-step(mlr_modelR_min, direction = "backward")
+> #----------------------------Decision Trees---------------#
+> UsageD$Patron.Type.Definition<-as.numeric(as.factor(UsageD$Patron.Type.Definition))
+> UsageD$Home.Library.Code<-as.numeric(as.factor(UsageD$Home.Library.Code))
+> UsageD$Home.Library.Definition<-as.numeric(as.factor(UsageD$Home.Library.Definition))
+> UsageD$Circulation.Active.Month<-as.numeric(as.factor(UsageD$Circulation.Active.Month))
+> UsageD$Circulation.Active.Year<-as.numeric(as.factor(UsageD$Circulation.Active.Year))
+> UsageD$Notice.Preference.Code<-as.numeric(as.factor(UsageD$Notice.Preference.Code))
+> UsageD$Notice.Preference.Definition<-as.numeric(as.factor(UsageD$Notice.Preference.Definition))
+> UsageD$Provided.Email.Address<-as.numeric(as.factor(UsageD$Provided.Email.Address))
+> UsageD$Outside.of.County<-as.numeric(as.factor(UsageD$Outside.of.County))
+> head(UsageD, 10)
+> mixUsageD<-sample(1 : nrow(UsageD))
+> head(mixUsageD)
+> UsageD_Data<-UsageD[mixUsageD,]
+> head(UsageD_Data)
+> UsageD_Train <- function(UsageD_Data, size = 0.8, train = TRUE) {
++     n_row = nrow(UsageD_Data)
++     total_row = size * n_row
++     train_sample <- 1: total_row
++     if (train == TRUE) {
++         return (UsageD_Data[train_sample, ])
++     } else {
++         return (UsageD_Data[-train_sample, ])
++     }
++ }
+> UsageDTrain<-UsageD_Train(UsageD_Data, size = 0.8, train = TRUE)
+> UsageDTest<-UsageD_Train(UsageD_Data, size = 0.8, train = FALSE)
+> dim(UsageD_Data)
+> dim(UsageDTrain)
+> dim(UsageDTest)
+> fit <- rpart(UsageDTrain$Age.Range~. , data = UsageDTrain , method = "class")
+> rpart.plot(fit, extra = 106)
+predictUsage<-predict(fit, UsageDTrain, type = "class")
+> PredictTable<-table(UsageDTrain$Age.Range, predictUsage)
+> PredictTable
+> PredictAccuracy<-sum(diag(PredictTable)) / sum(PredictTable)
+> print(paste("Accuracy test amounts to ", PredictAccuracy))
+> #Prediction tree by Supervisor District
+> prop.table(table(UsageDTrain$Supervisor.District))
+> prop.table(table(UsageDTest$Supervisor.District))
+> AccuracySupervisor<-sum(diag(Table2Mat))/sum(Table2Mat)
+> print(paste("Accuracy test is ", AccuracySupervisor))
+>#---------------------Naive Bayes attempt--------------
+> install.packages('tidyverse')
+> library(tidyverse)
+> install.packages('ggplot2')
+> library(ggplot2)
+> install.packages('caret')
+> library(caret)
+> install.packages('caretEnsemble')
+> library(caretEnsemble)
+> install.packages('psych')
+> library(psych)
+> install.packages('Amelia')
+> library(Amelia)
+> install.packages('mice')
+> library(mice)
+> install.packages('GGally')
+> library(GGally)
+> install.packages('rpart')
+> library(rpart)
+> install.packages('randomForest')
+> library(randomForest)
+> UsageD_Data$Age.Range<-as.numeric(as.factor(UsageD_Data$Age.Range))
+> ggplot(UsageD_Data, aes(Age.Range, colour = Age.Range)) +
+    geom_freqpoly(binwidth = 1) + labs(title="Patron Data Distribution by Age")
+> View(UsageD_Data2)
+> # 2 = 0 to 9 years; 3 = 10 to 19 years; 4 = 20 to 24; 5 = 25 to 34 years; 6 = 35 to 44 years; to  7 = 45 to 54 years; 8 = 55 to 59 years; 9 = 60 to 64 years; 10 = 65 to 74; 11 = 75 and over
+> ggplot(UsageD_Data, aes(x=Supervisor.District, fill=Age.Range, color=Age.Range)) +
+geom_histogram(binwidth = 1) + labs(title="Distribution by Supervisor District")
+c + theme_bw()
+> x=UsageDTrain[,-9]
+> y=UsageDTrain$Age.Range
+> install.packages("e1071")
